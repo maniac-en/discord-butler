@@ -1,19 +1,19 @@
 # Discord Butler 🤖
 
-A smart auto-updater for Discord on Linux that checks for updates and seamlessly installs them when available.
+A smart auto-updater for Discord on Linux that checks for updates and seamlessly installs them when available. **Now supports first-time Discord installation!**
 
 ## How it works
 
 The script will:
-1. Check your current Discord version
-2. Compare with the latest available version
-3. If an update is available, download and prompt for sudo password to install
-4. Launch Discord
+1. **Check if Discord is installed** - if not, automatically install it
+2. Check your current Discord version
+3. Compare with the latest available version
+4. If an update is available, download and prompt for sudo password to install
+5. Launch Discord
 
 ## Requirements
 
-- Linux system with `dpkg` package manager
-- Discord installed and in PATH
+- **Debian/Ubuntu-based Linux system** with `dpkg` package manager
 - Python 3.8+
 - Python packages: `requests`, `packaging` (see requirements.txt)
 - tkinter (To read password prompt from a dialog box - comes with Python but may need system package)
