@@ -12,6 +12,15 @@ from urllib.parse import ParseResult, urlparse
 TMP_DIR = "/tmp"
 
 
+def notify(message):
+    """Send desktop notification if notify-send is available."""
+    try:
+        subprocess.run(["notify-send", "Discord Butler", message], check=False)
+    except FileNotFoundError:
+        # notify-send not available, silently continue
+        pass
+
+
 def sys_exit_error():
     sys.exit(1)
 
@@ -20,6 +29,7 @@ def install_discord():
     """Install Discord on Debian/Ubuntu systems."""
     try:
         print("Discord not found. Installing Discord...")
+        notify("Installing Discord for the first time...")
 
         # Download Discord .deb package
         response = requests.head(
@@ -67,6 +77,7 @@ def install_discord():
 
         if proc.returncode == 0:
             print("Discord installed successfully!")
+            notify("Discord installed successfully!")
             return True
         elif proc.returncode == 126 or proc.returncode == 127:
             # User cancelled authentication or permission denied
@@ -155,10 +166,12 @@ print(f"Latest version: {latest_version}")
 
 if latest_version <= current_version:
     print("\nStarting discord...")
+    notify("Discord is up to date. Starting Discord...")
     subprocess.Popen(discord_bin, start_new_session=True)
     sys.exit()
 else:
     print(f"Downloading the latest version: {latest_version}")
+    notify(f"Update available! Downloading Discord {latest_version}...")
     response: requests.Response = requests.get(
         url=latest_version_parsed_url.geturl(),
         stream=True,
@@ -199,6 +212,7 @@ else:
 
     if proc.returncode == 0:
         print("\nRunning the newly installed discord...")
+        notify(f"Discord {latest_version} installed successfully!")
         subprocess.Popen(discord_bin, start_new_session=True)
     elif proc.returncode == 126 or proc.returncode == 127:
         print("Authentication cancelled or failed. Exiting...")

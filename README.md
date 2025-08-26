@@ -16,6 +16,7 @@ The script will:
 - **Debian/Ubuntu-based Linux system** with `dpkg` package manager
 - Python 3.8+
 - Python packages: `requests`, `packaging` (see requirements.txt)
+- `notify-send` (libnotify) - for desktop notifications (usually pre-installed)
 - **Polkit authentication agent** - for GUI password prompts (see setup below)
 
 ### Setting up Polkit Authentication
