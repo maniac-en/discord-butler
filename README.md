@@ -16,20 +16,34 @@ The script will:
 - **Debian/Ubuntu-based Linux system** with `dpkg` package manager
 - Python 3.8+
 - Python packages: `requests`, `packaging` (see requirements.txt)
-- tkinter (To read password prompt from a dialog box - comes with Python but may need system package)
+- **Polkit authentication agent** - for GUI password prompts (see setup below)
 
-### Installing tkinter
+### Setting up Polkit Authentication
 
-On Ubuntu/Debian systems, install tkinter with:
+Discord Butler uses `pkexec` for secure privilege escalation with GUI authentication dialogs. You need a polkit authentication agent running.
 
+**For i3/dwm/minimal window managers:**
 ```bash
-sudo apt update
-sudo apt install python3-tk
+# Install lightweight polkit agent
+sudo apt install lxpolkit
+
+# Add to your window manager startup (e.g., ~/.config/i3/config)
+exec --no-startup-id lxpolkit
 ```
 
-Verify installation:
+**For other desktop environments:**
 ```bash
-python3 -m tkinter
+# GNOME-based systems
+sudo apt install policykit-1-gnome
+
+# KDE-based systems
+sudo apt install polkit-kde-agent-1
+```
+
+**Verify setup:**
+```bash
+# This should show a GUI authentication dialog
+pkexec echo "Polkit working!"
 ```
 
 ## Installation

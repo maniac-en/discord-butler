@@ -3,8 +3,6 @@ import subprocess
 import shutil
 import sys
 import requests
-import tkinter as tk
-from tkinter import simpledialog
 
 from os.path import exists
 
@@ -18,42 +16,29 @@ def sys_exit_error():
     sys.exit(1)
 
 
-def get_sudo_password(message="Enter sudo password:"):
-    """Get sudo password from user."""
-    root = tk.Tk()
-    root.withdraw()
-    sudo_pass = simpledialog.askstring(
-        "Discord Butler",
-        message,
-        show="*",
-    )
-    root.destroy()
-    return sudo_pass
-
-
 def install_discord():
     """Install Discord on Debian/Ubuntu systems."""
     try:
         print("Discord not found. Installing Discord...")
-        
+
         # Download Discord .deb package
         response = requests.head(
             "https://discord.com/api/download/stable?platform=linux&format=deb",
             allow_redirects=False,
         )
-        
+
         if response.status_code != requests.codes.found:
             print("Error: Could not get Discord download URL")
             return False
-            
+
         download_url = response.headers["Location"]
         filename = download_url.split("/")[-1]
         filepath = f"{TMP_DIR}/{filename}"
-        
+
         print("Downloading Discord...")
         download_response = requests.get(download_url, stream=True)
         download_response.raw.decode_content = True
-        
+
         if download_response.status_code == requests.codes.ok:
             with open(filepath, "wb") as f:
                 for chunk in download_response.iter_content(chunk_size=1024):
@@ -61,41 +46,40 @@ def install_discord():
         else:
             print("Error downloading Discord")
             return False
-            
+
         if not exists(filepath):
             print("Error: downloaded file doesn't exist")
             return False
-            
+
         print(f"File downloaded successfully: {filepath}")
-        
-        # Get sudo password and install
-        sudo_pass = get_sudo_password("Enter sudo password to install Discord:")
-        if not sudo_pass:
-            print("Password not provided, cannot install Discord")
-            return False
-            
-        proc = subprocess.Popen(
-            ["sudo", "-S", "dpkg", "-i", filepath],
+
+        # Use pkexec for authentication
+        print("Authentication required to install Discord...")
+        proc = subprocess.run(
+            ["pkexec", "dpkg", "-i", filepath],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            stdin=subprocess.PIPE,
+            text=True,
         )
-        
-        out, err = proc.communicate(input=(sudo_pass + "\n").encode())
-        print(out.decode())
-        if err:
-            print(err.decode())
-        
+        print(proc.stdout)
+        if proc.stderr:
+            print(proc.stderr)
+
         if proc.returncode == 0:
             print("Discord installed successfully!")
             return True
+        elif proc.returncode == 126 or proc.returncode == 127:
+            # User cancelled authentication or permission denied
+            print("Authentication cancelled or failed. Cannot install Discord.")
+            return False
         else:
-            # Try to fix dependencies
+            # Installation failed, try to fix dependencies
             print("Attempting to fix dependencies...")
             dep_proc = subprocess.run(
-                ["sudo", "-S", "apt", "-f", "install", "-y"], 
-                input=(sudo_pass + "\n").encode(), 
-                capture_output=True
+                ["pkexec", "apt", "-f", "install", "-y"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
             )
             if dep_proc.returncode == 0:
                 print("Dependencies fixed. Discord should now be available.")
@@ -103,7 +87,7 @@ def install_discord():
             else:
                 print("Error installing Discord and fixing dependencies")
                 return False
-            
+
     except Exception as e:
         print(f"Error installing Discord: {e}")
         return False
@@ -121,7 +105,9 @@ if not discord_bin:
     if install_discord():
         discord_bin = shutil.which("discord")
         if not discord_bin:
-            print("Error: Discord installation completed but binary still not found in $PATH")
+            print(
+                "Error: Discord installation completed but binary still not found in $PATH"
+            )
             print("You may need to restart your terminal or add Discord to your PATH")
             sys_exit_error()
     else:
@@ -195,31 +181,28 @@ else:
         print("Error: downloaded file doesn't exist or insufficient permissions")
         sys_exit_error()
 
-    sudo_pass = get_sudo_password("Enter sudo password to install newer version of discord:")
-
-    if not sudo_pass:
-        print("Password not provided, exiting...")
-        sys_exit_error()
-    proc = subprocess.Popen(
-        args=["sudo", "-S", dpkg_bin, "-i", downloaded_file_path],
+    print("Authentication required to install newer version of Discord...")
+    proc = subprocess.run(
+        args=["pkexec", dpkg_bin, "-i", downloaded_file_path],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        stdin=subprocess.PIPE,
+        text=True,
     )
 
     try:
-        out, err = proc.communicate(input=(sudo_pass + "\n").encode())
-        print(out.decode())
-        if err:
-            print(err.decode())
+        print(proc.stdout)
+        if proc.stderr:
+            print(proc.stderr)
     except Exception as e:
         print(e)
-        proc.kill()
         sys_exit_error()
 
     if proc.returncode == 0:
         print("\nRunning the newly installed discord...")
         subprocess.Popen(discord_bin, start_new_session=True)
+    elif proc.returncode == 126 or proc.returncode == 127:
+        print("Authentication cancelled or failed. Exiting...")
+        sys_exit_error()
     else:
         print("There were some issues installing the newer version of discord...")
         sys_exit_error()
